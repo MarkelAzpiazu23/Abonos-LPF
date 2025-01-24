@@ -93,9 +93,11 @@
           <option value="EUR">EUR</option>
           <option value="USD">USD</option>
           <option value="ARS">ARS</option>
+          <!-- Agregar más monedas según sea necesario -->
         </select>
       </div>
 
+      <!-- Sección de productos -->
       <div v-if="currentPage === 1">
         <div class="producto" v-for="producto in productos.slice(0, 10)" :key="producto.id">
           <h2>{{ producto.titulo }}</h2>
@@ -126,6 +128,7 @@
         </div>
       </div>
 
+      <!-- Paginación -->
       <div class="pagination">
         <button @click="currentPage = 1" :disabled="currentPage === 1">Página 1</button>
         <button @click="currentPage = 2" :disabled="currentPage === 2">Página 2</button>
@@ -133,6 +136,7 @@
       </div>
     </div>
 
+    <!-- Carrito lateral -->
     <div class="sidebar" :class="{ activo: showCart }">
       <h2>Carrito</h2>
       <button class="cerrar" @click="toggleCart">Cerrar Carrito</button>
@@ -198,22 +202,13 @@
         },
       },
       methods: {
-    obtenerTasasDeCambio() {
-        fetch('a81b9502324fe9c020d037be') // URL de la API
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error en la red');
-                }
-                return response.json();
-            })
+        obtenerTasasDeCambio() {
+          fetch('https://api.exchangerate-api.com/v4/latest/EUR') // Cambiar a la URL correcta de la API
+            .then(response => response.json())
             .then(data => {
-                this.tasasDeCambio = data.rates; // Almacenar las tasas de cambio
+              this.tasasDeCambio = data.rates; // Almacenar las tasas de cambio
             })
-            .catch(error => {
-                console.error('Error al obtener las tasas de cambio:', error);
-            });
-    }
-}
+        },
         addToCart(producto) {
           const existingItem = this.carrito.find(item => item.id === producto.id);
           if (existingItem) {
