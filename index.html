@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABONOS</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Centrar todo el contenido */
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      background-color: #4caf50; /* Color de fondo del encabezado */
+      color: white; /* Color del texto del encabezado */
+      padding: 10px; /* Espaciado interno */
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Centrar horizontalmente */
+    }
+
+    .producto {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      text-align: center; /* Centrar el texto dentro de cada producto */
+      width: 200px;
+      display: inline-block;
+      vertical-align: top;
+    }
+
+    .producto h2 {
+      text-align: center; /* Centrar el título del producto */
+    }
+
+    .sidebar {
+      position: fixed; /* Fija la barra lateral */
+      left: 0;
+      top: 0;
+      width: 250px;
+      height: 100%;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: white;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      display: none; /* Oculta por defecto */
+      z-index: 1000; /* Asegura que esté por encima de otros elementos */
+    }
+
+    .sidebar.activo {
+      display: block; /* Muestra la barra lateral cuando tiene la clase 'activo' */
+    }
+
+    button {
+      padding: 5px 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px; /* Espaciado entre botones */
+    }
+
+    .cerrar {
+      background-color: #f44336; /* Color rojo para el botón de cerrar */
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center; /* Centrar los botones de paginación */
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>ABONOS PARA LA LIGA ARGENTINA</h1>
+    <button @click="toggleCart">Ver Carrito</button>
+
+    <div class="container">
+      <div>
+        <label for="moneda">Seleccionar Moneda:</label>
+        <select v-model="monedaSeleccionada" @change="obtenerTasasDeCambio">
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+          <option value="ARS">ARS</option>
+          <!-- Agregar más monedas según sea necesario -->
+        </select>
+      </div>
+
+      <div v-if="currentPage === 1">
+        <div class="producto" v-for="producto in productos.slice(0, 10)" :key="producto.id">
+          <h2>{{ producto.titulo }}</h2>
+          <img :src="producto.imagen" alt="Imagen del producto" style="max-width: 100px;">
+          <p>Precio: {{ (producto.precio * tasasDeCambio[monedaSeleccionada]).toFixed(2) }} {{ monedaSeleccionada }}</p>
+          <input type="number" v-model.number="producto.cantidad" min="1"/>
+          <button @click="addToCart(producto)">Añadir al carrito</button>
+        </div>
+      </div>
+
+      <div v-if="currentPage === 2">
+        <div class="producto" v-for="producto in productos.slice(10, 20)" :key="producto.id">
+          <h2>{{ producto.titulo }}</h2>
+          <img :src="producto.imagen" alt="Imagen del producto" style="max-width: 100px;">
+          <p>Precio: {{ (producto.precio * tasasDeCambio[monedaSeleccionada]).toFixed(2) }} {{ monedaSeleccionada }}</p>
+          <input type="number" v-model.number="producto.cantidad" min="1"/>
+          <button @click="addToCart(producto)">Añadir al carrito</button>
+        </div>
+      </div>
+
+      <div v-if="currentPage === 3">
+        <div class="producto" v-for="producto in productos.slice(20, 30)" :key="producto.id">
+          <h2>{{ producto.titulo }}</h2>
+          <img :src="producto.imagen" alt="Imagen del producto" style="max-width: 100px;">
+          <p>Precio: {{ (producto.precio * tasasDeCambio[monedaSeleccionada]).toFixed(2) }} {{ monedaSeleccionada }}</p>
+          <input type="number" v-model.number="producto.cantidad" min="1"/>
+          <button @click="addToCart(producto)">Añadir al carrito</button>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button @click="currentPage = 1" :disabled="currentPage === 1">Página 1</button>
+        <button @click="currentPage = 2" :disabled="currentPage === 2">Página 2</button>
+        <button @click="currentPage = 3" :disabled="currentPage === 3">Página 3</button>
+      </div>
+    </div>
+
+    <div class="sidebar" :class="{ activo: showCart }">
+      <h2>Carrito</h2>
+      <button class="cerrar" @click="toggleCart">Cerrar Carrito</button>
+      <div v-if="carrito.length > 0">
+        <div v-for="item in carrito" :key="item.id">
+          <p>{{ item.titulo }} - Unidades: {{ item.cantidad }} - Subtotal: {{ (item.precio * item.cantidad * tasasDeCambio[monedaSeleccionada]).toFixed(2) }} {{ monedaSeleccionada }}</p>
+        </div>
+        <p>Total: {{ totalPrice.toFixed(2) }} {{ monedaSeleccionada }}</p>
+      </div>
+      <p v-else>El carrito está vacío</p>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          productos: [
+            { id: 1, titulo: 'Aldosivi', precio: 30.00, imagen: 'img/aldosivi.webp', cantidad: 1 },
+            { id: 2, titulo: 'Argentinos Juniors', precio: 40.00, imagen: 'img/argentinojuniors.webp', cantidad: 1 },
+            { id: 3, titulo: 'Atlético Tucumán', precio: 35.00, imagen: 'img/atleticotucuman.webp', cantidad: 1 },
+            { id: 4, titulo: 'Banfield', precio: 35.00, imagen: 'img/banfield.webp', cantidad: 1 },
+            { id: 5, titulo: 'Barracas Central', precio: 30.00, imagen: 'img/barracas.webp', cantidad: 1 },
+            { id: 6, titulo: 'Belgrano', precio: 40.00, imagen: 'img/belgrano.webp', cantidad: 1 },
+            { id: 7, titulo: 'Boca Juniors', precio: 50.00, imagen: 'img/boca.webp', cantidad: 1 },
+            { id: 8, titulo: 'Central Córdoba', precio: 35.00, imagen: 'img/central.webp', cantidad: 1 },
+            { id: 9, titulo: 'Defensa y Justicia', precio: 35.00, imagen: 'img/defensa.webp', cantidad: 1 },
+            { id: 10, titulo: 'Estudiantes de La Plata', precio: 45.00, imagen: 'img/estudiantes.webp', cantidad: 1 },
+            { id: 11, titulo: 'Gimnasia y Esgrima La Plata', precio: 40.00, imagen: 'img/gimnasia.webp', cantidad: 1 },
+            { id: 12, titulo: 'Godoy Cruz', precio: 40.00, imagen: 'img/godoycurz.webp', cantidad: 1 },
+            { id: 13, titulo: 'Huracán', precio: 45.00, imagen: 'img/huracan.webp', cantidad: 1 },
+            { id: 14, titulo: 'Independiente Rivadavia', precio: 30.00, imagen: 'img/rivadavia.webp', cantidad: 1 },
+            { id: 15, titulo: 'Independiente', precio: 45.00, imagen: 'img/independiente.webp', cantidad: 1 },
+            { id: 16, titulo: 'Instituto De Córdoba', precio: 30.00, imagen: 'img/institutocordoba.webp', cantidad: 1 },
+            { id: 17, titulo: 'Lanús', precio: 40.00, imagen: 'img/lanus.webp', cantidad: 1 },
+            { id: 18, titulo: 'Newells Old Boys', precio: 40.00, imagen: 'img/newells.webp', cantidad: 1 },
+            { id: 19, titulo: 'Platense', precio: 35.00, imagen: 'img/platense.webp', cantidad: 1 },
+            { id: 20, titulo: 'Racing Club', precio: 45.00, imagen: 'img/racing.webp', cantidad: 1 },
+            { id: 21, titulo: 'Riestra', precio: 20.00, imagen: 'img/riestra.webp', cantidad: 1 },
+            { id: 22, titulo: 'River Plate', precio: 60.00, imagen: 'img/riverplate.webp', cantidad: 1 },
+            { id: 23, titulo: 'Rosario Central', precio: 40.00, imagen: 'img/rosaios.webp', cantidad: 1 },
+            { id: 24, titulo: 'San Martín', precio: 30.00, imagen: 'img/san martin.webp', cantidad: 1 },
+            { id: 25, titulo: 'San Lorenzo', precio: 40.00, imagen: 'img/sanlorenzo.webp', cantidad: 1 },
+            { id: 26, titulo: 'Sarmiento', precio: 30.00, imagen: 'img/sarmiento.webp', cantidad: 1 },
+            { id: 27, titulo: 'Talleres', precio: 45.00, imagen: 'img/talleres.webp', cantidad: 1 },
+            { id: 28, titulo: 'Tigre', precio: 35.00, imagen: 'img/tigre.webp', cantidad: 1 },
+            { id: 29, titulo: 'Unión', precio: 35.00, imagen: 'img/union.webp', cantidad: 1 },
+            { id: 30, titulo: 'Vélez Sarsfield', precio: 45.00, imagen: 'img/velez.webp', cantidad: 1 },
+          ],
+          carrito: [],
+          showCart: false,
+          currentPage: 1,
+          monedaSeleccionada: 'EUR', // Moneda por defecto
+          tasasDeCambio: {}, // Para almacenar las tasas de cambio
+        };
+      },
+      computed: {
+        totalPrice() {
+          const tasaCambio = this.tasasDeCambio[this.monedaSeleccionada] || 1; // Obtener la tasa de cambio
+          return this.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad * tasaCambio), 0);
+        },
+      },
+      methods: {
+        async obtenerTasasDeCambio() {
+          const response = await fetch('https://api.exchangerate-api.com/v4/latest/EUR'); // Cambiar a la URL correcta de la API
+          const data = await response.json();
+          this.tasasDeCambio = data.rates; // Almacenar las tasas de cambio
+        },
+        addToCart(producto) {
+          const existingItem = this.carrito.find(item => item.id === producto.id);
+          if (existingItem) {
+            existingItem.cantidad += producto.cantidad;
+          } else {
+            this.carrito.push({ ...producto });
+          }
+          producto.cantidad = 1; // Reiniciar cantidad después de añadir al carrito
+        },
+        toggleCart() {
+          this.showCart = !this.showCart; // Alternar visibilidad del carrito
+        },
+      },
+      mounted() {
+        this.obtenerTasasDeCambio(); // Obtener tasas de cambio al iniciar
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>
